@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keberadaan Guru & Staf</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#f4f6f9;color:#1b2733}
+.inp{width:100%;border:1px solid #d5dbe3;border-radius:6px;padding:.55rem .7rem;background:#fff}
+.inp:focus{outline:2px solid #1f4e8c;border-color:transparent}
+.btn{background:#12304f;color:#fff;border-radius:6px;padding:.55rem 1.1rem;font-weight:600}.btn:hover{background:#1f4e8c}
+.card{background:#fff;border:1px solid #e1e6ed;border-radius:8px}</style>
+</head>
+<body>
+<header style="background:#12304f" class="text-white">
+  <div class="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+    <div><div class="text-lg font-bold">Keberadaan Guru & Staf</div><div class="text-xs text-blue-200">Rujukan guru relief &amp; analisis kehadiran</div></div>
+    <nav id="nav" class="flex gap-1 text-sm font-semibold"></nav>
+  </div>
+</header>
+<main id="app" class="max-w-5xl mx-auto px-4 py-6">Memuatkan data…</main>
+
+<script>
+// === TETAPAN: tampal URL Web App Apps Script di sini ===
+const API = 'https://script.google.com/macros/s/AKfycbwtfotuHjP4L6qqEVwjDtAWoHAgwUo1zXq_ITpi9LyFMYZg7ihfQkpMzyBkmdXGpWMv/exec';
+
+const BULAN = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
+let D = {guru:[], jenisKeberadaan:[], jenisCuti:[], keberadaan:[]};
+let tab = 'hari', pw = sessionStorage.getItem('pw') || '', tarikh = '', tahun = new Date().getFullYear();
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const iso = d => d.toLocaleDateString('sv');
+const fdate = s => s ? s.split('-').reverse().join('/') : '';
+tarikh = iso(new Date());
+
+async function load() {
+  try { D = await (await fetch(API)).json(); } catch (e) { $app('Gagal memuatkan data. Semak URL API.'); return; }
+  render();
+}
+async function post(b) { return (await fetch(API, {method:'POST', body:JSON.stringify(b)})).json(); }
+const $app = h => document.getElementById('app').innerHTML = h;
+function go(t) { tab = t; render(); }
+
+function* hari(a, b) {
+  for (let d = new Date(a + 'T00:00'); d <= new Date(b + 'T00:00'); d.setDate(d.getDate() + 1)) yield new Date(d);
+}
+
+function render() {
+  const tabs = [['hari','Hari Ini'],['isi','Isi Keberadaan'],['admin','Pentadbir']];
+  document.getElementById('nav').innerHTML = tabs.map(([k,l]) =>
+    `<button onclick="go('${k}')" class="px-3 py-2 rounded-md ${tab===k?'bg-white text-slate-900':'text-blue-100 hover:bg-white/10'}">${l}</button>`).join('');
+  if (tab === 'hari') vHari(); else if (tab === 'isi') vIsi(); else vAdmin();
+}
+
+// ---------- Paparan 1: rujukan relief ----------
+function vHari() {
+  const list = D.keberadaan.filter(r => r.Tarikh_mula <= tarikh && tarikh <= (r.Tarikh_tamat || r.Tarikh_mula))
+    .sort((a, b) => (a.Masa_mula || '').localeCompare(b.Masa_mula || ''));
+  const pen = list.filter(r => !r.Masa_mula && !r.Masa_tamat).length;
+  const kad = (t, v) => `<div class="card p-4"><div class="text-xs text-slate-500">${t}</div><div class="text-2xl font-bold mt-1" style="color:#12304f">${v}</div></div>`;
+  $app(`
+  <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+    <div><h2 class="text-xl font-bold">Guru/Staf Tiada</h2><p class="text-sm text-slate-500">Rujukan untuk pengaturan relief</p></div>
+    <div><label class="text-xs text-slate-500">Tarikh</label><input type="date" class="inp" value="${tarikh}" onchange="tarikh=this.value;vHari()"></div>
+  </div>
+  <div class="grid grid-cols-3 gap-3 mb-4">${kad('Jumlah tiada', list.length)}${kad('Sepanjang hari', pen)}${kad('Separa hari', list.length - pen)}</div>
+  <div class="card overflow-x-auto"><table class="w-full text-sm">
+    <thead class="text-left text-xs text-slate-500 border-b"><tr><th class="p-3">Nama</th><th class="p-3">Keberadaan</th><th class="p-3">Masa</th><th class="p-3">Tempoh</th><th class="p-3">Catatan</th></tr></thead>
+    <tbody>${list.map(r => `<tr class="border-b last:border-0"><td class="p-3 font-semibold">${esc(r.Nama_Guru)}</td>
+      <td class="p-3">${esc(r.Jenis_keberadaan)}${r.Jenis_Cuti ? `<div class="text-xs text-slate-500">${esc(r.Jenis_Cuti)}</div>` : ''}</td>
+      <td class="p-3 whitespace-nowrap">${r.Masa_mula || r.Masa_tamat ? esc(r.Masa_mula) + ' – ' + esc(r.Masa_tamat) : 'Sepanjang hari'}</td>
+      <td class="p-3 whitespace-nowrap">${fdate(r.Tarikh_mula)}${r.Tarikh_tamat && r.Tarikh_tamat !== r.Tarikh_mula ? ' – ' + fdate(r.Tarikh_tamat) : ''}</td>
+      <td class="p-3 text-slate-500">${esc(r.Catatan)}</td></tr>`).join('') ||
+      '<tr><td colspan="5" class="p-8 text-center text-slate-400">Semua guru/staf hadir pada tarikh ini.</td></tr>'}</tbody></table></div>`);
+}
+
+// ---------- Paparan 2: guru isi sendiri ----------
+function vIsi() {
+  const opt = a => a.map(x => `<option>${esc(x)}</option>`).join('');
+  $app(`<div class="card p-5 max-w-2xl"><h2 class="text-xl font-bold mb-4">Isi Keberadaan</h2>
+  <div class="grid sm:grid-cols-2 gap-3">
+    <div class="sm:col-span-2"><label class="text-xs text-slate-500">Nama</label><select id="f_n" class="inp"><option value="">— Pilih nama —</option>${opt(D.guru.map(g => g.Nama))}</select></div>
+    <div><label class="text-xs text-slate-500">Jenis Keberadaan</label><select id="f_j" class="inp" onchange="document.getElementById('f_cw').style.display=this.value==='Cuti'?'block':'none'"><option value="">— Pilih —</option>${opt(D.jenisKeberadaan)}</select></div>
+    <div id="f_cw" style="display:none"><label class="text-xs text-slate-500">Jenis Cuti</label><select id="f_c" class="inp"><option value="">— Pilih —</option>${opt(D.jenisCuti)}</select></div>
+    <div><label class="text-xs text-slate-500">Tarikh mula</label><input type="date" id="f_tm" class="inp" value="${tarikh}"></div>
+    <div><label class="text-xs text-slate-500">Tarikh tamat</label><input type="date" id="f_tt" class="inp" value="${tarikh}"></div>
+    <div><label class="text-xs text-slate-500">Masa mula (kosong = sepanjang hari)</label><input type="time" id="f_sm" class="inp"></div>
+    <div><label class="text-xs text-slate-500">Masa tamat</label><input type="time" id="f_st" class="inp"></div>
+    <div class="sm:col-span-2"><label class="text-xs text-slate-500">Catatan</label><input id="f_ct" class="inp" placeholder="Contoh: Kursus KPM di PPD"></div>
+  </div>
+  <button class="btn mt-4" id="f_b" onclick="hantar()">Hantar</button> <span id="f_m" class="text-sm ml-2"></span></div>`);
+}
+async function hantar() {
+  const v = id => document.getElementById(id).value;
+  const rekod = {Nama_Guru:v('f_n'), Jenis_keberadaan:v('f_j'), Jenis_Cuti:v('f_j')==='Cuti'?v('f_c'):'', Tarikh_mula:v('f_tm'), Tarikh_tamat:v('f_tt'),
+    Masa_mula:v('f_sm'), Masa_tamat:v('f_st'), Catatan:v('f_ct')};
+  const m = document.getElementById('f_m');
+  if (!rekod.Nama_Guru || !rekod.Jenis_keberadaan || !rekod.Tarikh_mula) { m.textContent = 'Sila lengkapkan nama, jenis dan tarikh.'; m.style.color = '#b42318'; return; }
+  if (rekod.Tarikh_tamat < rekod.Tarikh_mula) { m.textContent = 'Tarikh tamat mesti selepas tarikh mula.'; m.style.color = '#b42318'; return; }
+  document.getElementById('f_b').disabled = true; m.textContent = 'Menghantar…';
+  const r = await post({action:'add', rekod});
+  if (r.ok) { await load(); tab = 'isi'; render(); const n = document.getElementById('f_m'); n.textContent = 'Berjaya direkodkan ✓'; n.style.color = '#067647'; }
+  else { m.textContent = r.msg || 'Gagal.'; document.getElementById('f_b').disabled = false; }
+}
+
+// ---------- Paparan 3: pentadbir ----------
+async function login() {
+  const p = document.getElementById('pw').value;
+  const r = await post({action:'login', password:p});
+  if (r.ok) { pw = p; sessionStorage.setItem('pw', p); render(); } else document.getElementById('pe').textContent = 'Kata laluan salah.';
+}
+function keluar() { pw = ''; sessionStorage.removeItem('pw'); render(); }
+
+function analisis(yr) {
+  const g = {}, j = {};
+  D.keberadaan.forEach(r => {
+    const w = (r.Masa_mula || r.Masa_tamat) ? 0.5 : 1; // separa hari = 0.5 hari
+    for (const d of hari(r.Tarikh_mula, r.Tarikh_tamat || r.Tarikh_mula)) {
+      if (d.getFullYear() != yr || d.getDay() === 0 || d.getDay() === 6) continue; // kecualikan hujung minggu
+      (g[r.Nama_Guru] ??= Array(12).fill(0))[d.getMonth()] += w;
+      j[r.Jenis_keberadaan] = (j[r.Jenis_keberadaan] || 0) + w;
+    }
+  });
+  return {g, j};
+}
+
+function vAdmin() {
+  if (!pw) { $app(`<div class="card p-5 max-w-sm mx-auto"><h2 class="text-lg font-bold mb-3">Log Masuk Pentadbir</h2>
+    <input type="password" id="pw" class="inp" placeholder="Kata laluan" onkeydown="if(event.key==='Enter')login()">
+    <button class="btn mt-3 w-full" onclick="login()">Masuk</button><div id="pe" class="text-sm text-red-700 mt-2"></div></div>`); return; }
+  const {g, j} = analisis(tahun);
+  const rows = Object.entries(g).map(([n, a]) => [n, a, a.reduce((x, y) => x + y, 0)]).sort((x, y) => y[2] - x[2]);
+  const bln = Array(12).fill(0); rows.forEach(r => r[1].forEach((v, i) => bln[i] += v));
+  const mx = Math.max(...bln, 1), tot = rows.reduce((s, r) => s + r[2], 0);
+  const yrs = [...new Set([tahun, new Date().getFullYear(), ...D.keberadaan.map(r => +r.Tarikh_mula.slice(0, 4))])].sort();
+  const rek = D.keberadaan.filter(r => r.Tarikh_mula.startsWith(tahun)).sort((a, b) => b.Tarikh_mula.localeCompare(a.Tarikh_mula));
+  $app(`
+  <div class="flex flex-wrap items-end justify-between gap-3 mb-4"><h2 class="text-xl font-bold">Analisis Keberadaan</h2>
+    <div class="flex items-end gap-2"><select class="inp" onchange="tahun=+this.value;vAdmin()">${yrs.map(y => `<option ${y===tahun?'selected':''}>${y}</option>`).join('')}</select>
+    <button class="btn" onclick="csv()">Eksport CSV</button><button class="px-3 py-2 text-sm text-slate-600 underline" onclick="keluar()">Log keluar</button></div></div>
+  <div class="grid sm:grid-cols-3 gap-3 mb-4">
+    <div class="card p-4"><div class="text-xs text-slate-500">Jumlah hari tiada (${tahun})</div><div class="text-2xl font-bold" style="color:#12304f">${tot}</div></div>
+    <div class="card p-4"><div class="text-xs text-slate-500">Guru/staf terlibat</div><div class="text-2xl font-bold" style="color:#12304f">${rows.length}</div></div>
+    <div class="card p-4"><div class="text-xs text-slate-500">Mengikut jenis</div><div class="text-sm mt-1">${Object.entries(j).map(([k, v]) => `${esc(k)}: <b>${v}</b>`).join(' · ') || '-'}</div></div></div>
+  <div class="card p-4 mb-4"><div class="text-sm font-semibold mb-3">Trend bulanan (hari)</div>
+    <div class="flex items-end gap-2 h-32">${bln.map((v, i) => `<div class="flex-1 flex flex-col items-center justify-end h-full"><span class="text-xs text-slate-500">${v || ''}</span>
+      <div style="height:${v / mx * 85}%;background:#1f4e8c;min-height:${v ? 3 : 0}px" class="w-full rounded-t"></div><span class="text-xs mt-1">${BULAN[i]}</span></div>`).join('')}</div></div>
+  <div class="card overflow-x-auto mb-4"><table class="w-full text-sm">
+    <thead class="text-xs text-slate-500 border-b"><tr><th class="p-2 text-left">Nama</th>${BULAN.map(b => `<th class="p-2">${b}</th>`).join('')}<th class="p-2">Jumlah</th></tr></thead>
+    <tbody>${rows.map(([n, a, t]) => `<tr class="border-b last:border-0"><td class="p-2 font-semibold whitespace-nowrap">${esc(n)}</td>${a.map(v => `<td class="p-2 text-center ${v ? '' : 'text-slate-300'}">${v || '·'}</td>`).join('')}<td class="p-2 text-center font-bold">${t}</td></tr>`).join('') || '<tr><td colspan="14" class="p-6 text-center text-slate-400">Tiada rekod.</td></tr>'}</tbody></table></div>
+  <h3 class="font-bold mb-2">Rekod ${tahun} (${rek.length})</h3>
+  <div class="card overflow-x-auto"><table class="w-full text-sm"><tbody>${rek.slice(0, 150).map(r => `<tr class="border-b last:border-0">
+    <td class="p-2 font-semibold">${esc(r.Nama_Guru)}</td><td class="p-2">${esc(r.Jenis_keberadaan)}${r.Jenis_Cuti ? ' · ' + esc(r.Jenis_Cuti) : ''}</td>
+    <td class="p-2 whitespace-nowrap">${fdate(r.Tarikh_mula)} – ${fdate(r.Tarikh_tamat)}</td><td class="p-2 whitespace-nowrap">${esc(r.Masa_mula)} ${esc(r.Masa_tamat)}</td>
+    <td class="p-2 text-right"><button class="text-red-700 text-xs underline" onclick="padam('${esc(r.id_keberadaan)}')">Padam</button></td></tr>`).join('')}</tbody></table></div>`);
+}
+async function padam(id) {
+  if (!confirm('Padam rekod ini?')) return;
+  const r = await post({action:'delete', id, password:pw});
+  if (r.ok) load(); else alert(r.msg || 'Gagal memadam.');
+}
+function csv() {
+  const {g} = analisis(tahun);
+  const l = [['Nama', ...BULAN, 'Jumlah'].join(',')];
+  Object.entries(g).forEach(([n, a]) => l.push([`"${n}"`, ...a, a.reduce((x, y) => x + y, 0)].join(',')));
+  const u = URL.createObjectURL(new Blob(['\ufeff' + l.join('\n')], {type:'text/csv'}));
+  Object.assign(document.createElement('a'), {href:u, download:`analisis-${tahun}.csv`}).click();
+}
+load();
+</script>
+</body>
+</html>
