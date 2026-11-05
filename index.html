@@ -15,7 +15,8 @@
 <body>
 <header style="background:#12304f" class="text-white">
   <div class="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
-    <div><div class="text-lg font-bold">Keberadaan Guru & Staf</div><div class="text-xs text-blue-200">Rujukan guru relief &amp; analisis kehadiran</div></div>
+    <div class="flex items-center gap-3"><img id="logo" class="h-10 hidden" alt="">
+    <div><div id="nama" class="text-lg font-bold">Keberadaan Guru & Staf</div><div class="text-xs text-blue-200">Rujukan guru relief &amp; analisis kehadiran</div></div></div>
     <nav id="nav" class="flex gap-1 text-sm font-semibold"></nav>
   </div>
 </header>
@@ -23,7 +24,7 @@
 
 <script>
 // === TETAPAN: tampal URL Web App Apps Script di sini ===
-const API = 'https://script.google.com/macros/s/AKfycbwtfotuHjP4L6qqEVwjDtAWoHAgwUo1zXq_ITpi9LyFMYZg7ihfQkpMzyBkmdXGpWMv/exec';
+const API = 'GANTI_DENGAN_URL_APPS_SCRIPT';
 
 const BULAN = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
 let D = {guru:[], jenisKeberadaan:[], jenisCuti:[], keberadaan:[]};
@@ -36,7 +37,14 @@ tarikh = iso(new Date());
 
 async function load() {
   try { D = await (await fetch(API)).json(); } catch (e) { $app('Gagal memuatkan data. Semak URL API.'); return; }
-  render();
+  brand(); render();
+}
+function brand() {
+  if (D.nama_sekolah) { document.getElementById('nama').textContent = D.nama_sekolah; document.title = D.nama_sekolah; }
+  if (D.logo_sekolah) { // pautan halaman imgur ditukar kepada pautan imej terus
+    const u = D.logo_sekolah.replace(/^https?:\/\/imgur\.com\/(\w+)$/, 'https://i.imgur.com/$1.png');
+    const l = document.getElementById('logo'); l.src = u; l.classList.remove('hidden'); l.onerror = () => l.classList.add('hidden');
+  }
 }
 async function post(b) { return (await fetch(API, {method:'POST', body:JSON.stringify(b)})).json(); }
 const $app = h => document.getElementById('app').innerHTML = h;
