@@ -44,6 +44,9 @@ function brand() {
   if (D.logo_sekolah) { // pautan halaman imgur ditukar kepada pautan imej terus
     const u = D.logo_sekolah.replace(/^https?:\/\/imgur\.com\/(\w+)$/, 'https://i.imgur.com/$1.png');
     const l = document.getElementById('logo'); l.src = u; l.classList.remove('hidden'); l.onerror = () => l.classList.add('hidden');
+    let f = document.querySelector('link[rel="icon"]');
+    if (!f) { f = document.createElement('link'); f.rel = 'icon'; document.head.appendChild(f); }
+    f.href = u; // logo pada tab pelayar
   }
 }
 async function post(b) { return (await fetch(API, {method:'POST', body:JSON.stringify(b)})).json(); }
@@ -57,30 +60,44 @@ function* hari(a, b) {
 function render() {
   const tabs = [['hari','Hari Ini'],['isi','Isi Keberadaan'],['admin','Pentadbir']];
   document.getElementById('nav').innerHTML = tabs.map(([k,l]) =>
-    `<button onclick="go('${k}')" class="px-3 py-2 rounded-md ${tab===k?'bg-white text-slate-900':'text-blue-100 hover:bg-white/10'}">${l}</button>`).join('');
+    `<button onclick="go('${k}')" class="px-3 py-2 rounded-md ${tab===k?'bg-white text-slate-900':'text-blue-100 hover:bg-white/10'}">${l}</button>`).join('') + `<button onclick="load()" title="Muat semula" class="px-3 py-2 rounded-md text-blue-100 hover:bg-white/10">&#8635;</button>`;
   if (tab === 'hari') vHari(); else if (tab === 'isi') vIsi(); else vAdmin();
 }
 
-// ---------- Paparan 1: rujukan relief ----------
+// ---------- Paparan 1: senarai keberadaan / rujukan relief ----------
+let tapis = 'SEMUA', kunci = [];
+const fd = d => d ? `${d.slice(8)} ${BULAN[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}` : '';
+const WARNA = [['#ede9fe','#6d28d9'],['#dbeafe','#1d4ed8'],['#fef3c7','#b45309'],['#dcfce7','#15803d'],['#fee2e2','#b91c1c'],['#e0f2fe','#0369a1']];
+function setTapis(i) { tapis = i < 0 ? 'SEMUA' : kunci[i]; vHari(); }
 function vHari() {
-  const list = D.keberadaan.filter(r => r.Tarikh_mula <= tarikh && tarikh <= (r.Tarikh_tamat || r.Tarikh_mula))
-    .sort((a, b) => (a.Masa_mula || '').localeCompare(b.Masa_mula || ''));
-  const pen = list.filter(r => !r.Masa_mula && !r.Masa_tamat).length;
-  const kad = (t, v) => `<div class="card p-4"><div class="text-xs text-slate-500">${t}</div><div class="text-2xl font-bold mt-1" style="color:#12304f">${v}</div></div>`;
-  $app(`
-  <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-    <div><h2 class="text-xl font-bold">Guru/Staf Tiada</h2><p class="text-sm text-slate-500">Rujukan untuk pengaturan relief</p></div>
-    <div><label class="text-xs text-slate-500">Tarikh</label><input type="date" class="inp" value="${tarikh}" onchange="tarikh=this.value;vHari()"></div>
-  </div>
-  <div class="grid grid-cols-3 gap-3 mb-4">${kad('Jumlah tiada', list.length)}${kad('Sepanjang hari', pen)}${kad('Separa hari', list.length - pen)}</div>
-  <div class="card overflow-x-auto"><table class="w-full text-sm">
-    <thead class="text-left text-xs text-slate-500 border-b"><tr><th class="p-3">Nama</th><th class="p-3">Keberadaan</th><th class="p-3">Masa</th><th class="p-3">Tempoh</th><th class="p-3">Catatan</th></tr></thead>
-    <tbody>${list.map(r => `<tr class="border-b last:border-0"><td class="p-3 font-semibold">${esc(r.Nama_Guru)}</td>
-      <td class="p-3">${esc(r.Jenis_keberadaan)}${r.Jenis_Cuti ? `<div class="text-xs text-slate-500">${esc(r.Jenis_Cuti)}</div>` : ''}</td>
-      <td class="p-3 whitespace-nowrap">${r.Masa_mula || r.Masa_tamat ? esc(r.Masa_mula) + ' – ' + esc(r.Masa_tamat) : 'Sepanjang hari'}</td>
-      <td class="p-3 whitespace-nowrap">${fdate(r.Tarikh_mula)}${r.Tarikh_tamat && r.Tarikh_tamat !== r.Tarikh_mula ? ' – ' + fdate(r.Tarikh_tamat) : ''}</td>
-      <td class="p-3 text-slate-500">${esc(r.Catatan)}</td></tr>`).join('') ||
-      '<tr><td colspan="5" class="p-8 text-center text-slate-400">Semua guru/staf hadir pada tarikh ini.</td></tr>'}</tbody></table></div>`);
+  const all = D.keberadaan.filter(r => r.Tarikh_mula <= tarikh && tarikh <= (r.Tarikh_tamat || r.Tarikh_mula));
+  const cnt = {}; all.forEach(r => cnt[r.Jenis_keberadaan] = (cnt[r.Jenis_keberadaan] || 0) + 1);
+  kunci = Object.keys(cnt);
+  if (tapis !== 'SEMUA' && !cnt[tapis]) tapis = 'SEMUA';
+  const list = all.filter(r => tapis === 'SEMUA' || r.Jenis_keberadaan === tapis)
+    .sort((x, y) => (x.Masa_mula || '').localeCompare(y.Masa_mula || '') || x.Nama_Guru.localeCompare(y.Nama_Guru));
+  const stat = (i, l, n, on) => `<button onclick="setTapis(${i})" class="rounded-lg py-4 text-center transition ${on ? 'font-semibold' : 'hover:bg-slate-50'}" style="${on ? 'background:#dde8f7;color:#12304f' : ''}">
+    <div class="text-3xl font-bold" style="color:#12304f">${n}</div><div class="text-sm ${on ? '' : 'text-slate-600'}">${esc(l)}</div></button>`;
+  const warna = j => WARNA[Math.max(0, D.jenisKeberadaan.indexOf(j)) % WARNA.length];
+  const ico = p => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">${p}</svg>`;
+  const kad = r => {
+    const [bg, fg] = warna(r.Jenis_keberadaan), sama = !r.Tarikh_tamat || r.Tarikh_tamat === r.Tarikh_mula;
+    return `<div class="card p-4"><div class="flex items-start justify-between gap-3">
+      <div><div class="font-bold uppercase">${esc(r.Nama_Guru)}</div>
+      <div class="text-sm text-slate-600 mt-0.5">${fd(r.Tarikh_mula)}${sama ? '' : ' — ' + fd(r.Tarikh_tamat)}</div></div>
+      <span class="text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap" style="background:${bg};color:${fg}">${esc(r.Jenis_keberadaan)}${r.Jenis_Cuti ? ' · ' + esc(r.Jenis_Cuti) : ''}</span></div>
+      <div class="mt-3 space-y-1 text-sm">
+      ${r.Catatan ? `<div class="flex gap-2 items-center">${ico('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>')}${esc(r.Catatan)}</div>` : ''}
+      <div class="flex gap-2 items-center">${ico('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}${r.Masa_mula || r.Masa_tamat ? esc(r.Masa_mula) + ' – ' + esc(r.Masa_tamat) : 'Sepanjang hari'}</div></div></div>`;
+  };
+  $app(`<div class="rounded-xl overflow-hidden border" style="border-color:#e1e6ed">
+    <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style="background:#eef0f4">
+      <div><h2 class="text-lg font-bold">Senarai Keberadaan Guru/Staf</h2><p class="text-sm text-slate-600">Guru yang memerlukan relief pada tarikh dipilih</p></div>
+      <div class="flex items-center gap-2 text-sm"><span class="text-slate-600">Pilih Tarikh:</span><input type="date" class="inp !w-auto" value="${tarikh}" onchange="tarikh=this.value;vHari()"></div></div>
+    <div class="bg-white p-5">
+      <div class="font-semibold mb-3">${tarikh === iso(new Date()) ? 'Hari Ini — ' : ''}${fd(tarikh)}</div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-5">${stat(-1, 'Jumlah Relief', all.length, tapis === 'SEMUA')}${kunci.map((k, i) => stat(i, k, cnt[k], tapis === k)).join('')}</div>
+      <div class="space-y-3">${list.map(kad).join('') || '<div class="py-10 text-center text-slate-400">Semua guru/staf hadir pada tarikh ini.</div>'}</div></div></div>`);
 }
 
 // ---------- Paparan 2: guru isi sendiri ----------
