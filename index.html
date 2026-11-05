@@ -92,7 +92,7 @@ function vHari() {
   };
   $app(`<div class="rounded-xl overflow-hidden border" style="border-color:#e1e6ed">
     <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style="background:#eef0f4">
-      <div><h2 class="text-lg font-bold">Senarai Keberadaan Guru/Staf</h2><p class="text-sm text-slate-600">Guru yang memerlukan relief pada tarikh dipilih</p></div>
+      <div><h2 class="text-lg font-bold">Senarai Keberadaan Guru</h2><p class="text-sm text-slate-600">Guru yang memerlukan relief pada tarikh dipilih</p></div>
       <div class="flex items-center gap-2 text-sm"><span class="text-slate-600">Pilih Tarikh:</span><input type="date" class="inp !w-auto" value="${tarikh}" onchange="tarikh=this.value;vHari()"></div></div>
     <div class="bg-white p-5">
       <div class="font-semibold mb-3">${tarikh === iso(new Date()) ? 'Hari Ini — ' : ''}${fd(tarikh)}</div>
