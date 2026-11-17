@@ -117,23 +117,23 @@ function vIsi() {
     <div><label class="text-xs text-slate-500">Masa mula (kosong = sepanjang hari)</label><input type="time" id="f_sm" class="inp"></div>
     <div><label class="text-xs text-slate-500">Masa tamat</label><input type="time" id="f_st" class="inp"></div>
     <div class="sm:col-span-2"><label class="text-xs text-slate-500">Lokasi <span id="f_ls" class="text-red-600">*</span></label><input id="f_lk" class="inp" placeholder="Contoh: SMK Convent Sentul (JPWPKL)"></div>
-    <div class="sm:col-span-2"><label class="text-xs text-slate-500">Catatan <span class="text-red-600">*</span></label><input id="f_ct" class="inp" placeholder="Contoh: Kursus KPM di PPD"></div>
-    <div class="sm:col-span-2"><label class="text-xs text-slate-500">Bahan MMI <span class="text-red-600">*</span></label><textarea id="f_mmi" rows="3" class="inp" placeholder="Tampal pautan (Google Drive / Classroom) atau taip arahan tugasan untuk guru relief"></textarea>
+    <div class="sm:col-span-2"><label class="text-xs text-slate-500">Catatan <span id="f_cs" class="text-red-600">*</span></label><input id="f_ct" class="inp" placeholder="Contoh: Kursus KPM di PPD"></div>
+    <div class="sm:col-span-2"><label class="text-xs text-slate-500">Bahan MMI <span id="f_ms" class="text-red-600">*</span></label><textarea id="f_mmi" rows="3" class="inp" placeholder="Tampal pautan (Google Drive / Classroom) atau taip arahan tugasan untuk guru relief"></textarea>
     <div class="text-xs text-slate-400 mt-1">Bahan atau tugasan untuk murid sepanjang guru tiada di sekolah.</div></div>
   </div>
   <button class="btn mt-4" id="f_b" onclick="hantar()">Hantar</button> <span id="f_m" class="text-sm ml-2"></span></div>`);
 }
 function jenisUbah(v) { // Jenis Cuti hanya untuk "Cuti"; lokasi tidak wajib bagi cuti
   document.getElementById('f_cw').style.display = v === 'Cuti' ? 'block' : 'none';
-  document.getElementById('f_ls').style.display = v === 'Cuti' ? 'none' : 'inline';
+  ['f_ls', 'f_cs', 'f_ms'].forEach(id => document.getElementById(id).style.display = v === 'Cuti' ? 'none' : 'inline');
 }
 async function hantar() {
   const v = id => document.getElementById(id).value;
   const rekod = {Nama_Guru:v('f_n'), Jenis_keberadaan:v('f_j'), Jenis_Cuti:v('f_j')==='Cuti'?v('f_c'):'', Tarikh_mula:v('f_tm'), Tarikh_tamat:v('f_tt'),
     Masa_mula:v('f_sm'), Masa_tamat:v('f_st'), Catatan:v('f_ct'), Bahan_MMI:v('f_mmi'), Lokasi:v('f_lk')};
   const m = document.getElementById('f_m');
-  const wajib = {f_n:rekod.Nama_Guru, f_j:rekod.Jenis_keberadaan, f_tm:rekod.Tarikh_mula, f_tt:rekod.Tarikh_tamat, f_ct:rekod.Catatan.trim(), f_mmi:rekod.Bahan_MMI.trim()};
-  if (rekod.Jenis_keberadaan === 'Cuti') wajib.f_c = v('f_c'); else wajib.f_lk = rekod.Lokasi.trim();
+  const wajib = {f_n:rekod.Nama_Guru, f_j:rekod.Jenis_keberadaan, f_tm:rekod.Tarikh_mula, f_tt:rekod.Tarikh_tamat, };
+  if (rekod.Jenis_keberadaan === 'Cuti') wajib.f_c = v('f_c'); else { wajib.f_lk = rekod.Lokasi.trim(); wajib.f_ct = rekod.Catatan.trim(); wajib.f_mmi = rekod.Bahan_MMI.trim(); } // cuti: lokasi, catatan & MMI tidak wajib
   if (rekod.Masa_mula || rekod.Masa_tamat) { wajib.f_sm = rekod.Masa_mula; wajib.f_st = rekod.Masa_tamat; }
   ['f_n','f_j','f_c','f_tm','f_tt','f_ct','f_mmi','f_lk','f_sm','f_st'].forEach(id => document.getElementById(id).style.borderColor = '');
   const kosong = Object.keys(wajib).filter(id => !wajib[id]);
