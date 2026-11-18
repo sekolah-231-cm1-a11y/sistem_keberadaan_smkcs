@@ -175,15 +175,20 @@ async function login() {
 function keluar() { pw = ''; sessionStorage.removeItem('pw'); render(); }
 
 function analisis(yr) {
-  const g = {}, j = {};
+  // Kiraan bilangan HARI tidak hadir: setiap tarikh dikira sekali sahaja bagi setiap guru
+  // (separa hari dan rekod bertindih tetap dikira 1 hari). Hujung minggu dikecualikan.
+  const hs = {}, js = {};
   D.keberadaan.forEach(r => {
-    const w = (r.Masa_mula || r.Masa_tamat) ? 0.5 : 1; // separa hari = 0.5 hari
     for (const d of hari(r.Tarikh_mula, r.Tarikh_tamat || r.Tarikh_mula)) {
-      if (d.getFullYear() != yr || d.getDay() === 0 || d.getDay() === 6) continue; // kecualikan hujung minggu
-      (g[r.Nama_Guru] ??= Array(12).fill(0))[d.getMonth()] += w;
-      j[r.Jenis_keberadaan] = (j[r.Jenis_keberadaan] || 0) + w;
+      if (d.getFullYear() != yr || d.getDay() === 0 || d.getDay() === 6) continue;
+      const k = iso(d);
+      (hs[r.Nama_Guru] ??= Array.from({length: 12}, () => new Set()))[d.getMonth()].add(k);
+      (js[r.Jenis_keberadaan] ??= new Set()).add(r.Nama_Guru + '|' + k);
     }
   });
+  const g = {}, j = {};
+  Object.entries(hs).forEach(([n, a]) => g[n] = a.map(x => x.size));
+  Object.entries(js).forEach(([k, x]) => j[k] = x.size);
   return {g, j};
 }
 
