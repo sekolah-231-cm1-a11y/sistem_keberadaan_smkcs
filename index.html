@@ -24,7 +24,7 @@
 
 <script>
 // === TETAPAN: tampal URL Web App Apps Script di sini ===
-const API = 'https://script.google.com/macros/s/AKfycbxzsViWNrgOjVKFd3JDCTXXmeqnC_th9KqEqg1y7VnfZqrcM6adt7aHlEW1SJl_3ary/exec';
+const API = 'GANTI_DENGAN_URL_APPS_SCRIPT';
 
 const BULAN = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
 let D = {guru:[], jenisKeberadaan:[], jenisCuti:[], keberadaan:[]};
@@ -68,6 +68,7 @@ function render() {
 let tapis = 'SEMUA', kunci = [], sesi = 'SEMUA';
 const sesiGuru = n => ((D.guru.find(g => g.Nama === n) || {}).Sesi || '').trim();
 const padanSesi = n => { const x = sesiGuru(n).toLowerCase(); return sesi === 'SEMUA' || !x || x.includes('kedua') || x.includes(sesi.toLowerCase()); };
+const masaTeks = r => r.Masa_mula && r.Masa_tamat ? r.Masa_mula + ' – ' + r.Masa_tamat : r.Masa_mula ? 'Mulai ' + r.Masa_mula : r.Masa_tamat ? 'Hingga ' + r.Masa_tamat : 'Sepanjang hari';
 function setSesi(v) { sesi = v; tapis = 'SEMUA'; vHari(); }
 const fd = d => d ? `${d.slice(8)} ${BULAN[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}` : '';
 const WARNA = [['#ede9fe','#6d28d9'],['#dbeafe','#1d4ed8'],['#fef3c7','#b45309'],['#dcfce7','#15803d'],['#fee2e2','#b91c1c'],['#e0f2fe','#0369a1']];
@@ -95,7 +96,7 @@ function vHari() {
       ${r.Catatan ? `<div class="flex gap-2 items-center">${ico('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>')}${esc(r.Catatan)}</div>` : ''}
       ${r.Lokasi ? `<div class="flex gap-2 items-center">${ico('<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>')}${esc(r.Lokasi)}</div>` : ''}
       ${mmi ? `<div class="flex gap-2 items-start">${ico('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>')}<span class="whitespace-pre-line"><b>MMI:</b> ${mmi}</span></div>` : ''}
-      <div class="flex gap-2 items-center">${ico('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}${r.Masa_mula || r.Masa_tamat ? esc(r.Masa_mula) + ' – ' + esc(r.Masa_tamat) : 'Sepanjang hari'}</div></div></div>`;
+      <div class="flex gap-2 items-center">${ico('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}${esc(masaTeks(r))}</div></div></div>`;
   };
   $app(`<div class="rounded-xl overflow-hidden border" style="border-color:#e1e6ed">
     <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style="background:#eef0f4">
